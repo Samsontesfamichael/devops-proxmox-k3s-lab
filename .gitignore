@@ -1,0 +1,32 @@
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.*
+terraform/.env
+
+# Ansible
+ansible/.vault_pass.txt
+ansible/group_vars/vault.yml
+ansible/.ansible_facts/
+
+# Kubernetes artifacts
+kubernetes-core/*.yaml
+kubernetes-architecture/*.yaml
+.kube/
+
+# OS
+/images-iso/*.xz
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+__pycache__
+.vscode/
+.idea/
+
+# Documentation (generated/internal)
+error.md
+structure.md
