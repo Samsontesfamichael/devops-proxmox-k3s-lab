@@ -1,0 +1,30 @@
+- name: Bootstrap Proxmox LXC nodes for K3s
+  hosts: k3s_cluster
+  gather_facts: true
+  roles:
+    - k3s_install
+
+- name: Extract kubeconfig back to control machine
+  hosts: master
+  tasks:
+    - name: Read generated kubeconfig from master
+      slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig_b64
+
+    - name: Write kubeconfig locally with corrected server address
+      delegate_to: localhost
+      copy:
+        content: "{{ hostvars[groups['master'][0]].kubeconfig_b64.content | b64decode | replace('127.0.0.1', hostvars[groups['master'][0]].ansible_host) }}"
+        dest: "{{ lookup('env', 'HOME') }}/.kube/config-proxmox-k3s"
+        mode: '0600'
+
+- name: Inject enterprise secrets into Kubernetes
+  hosts: master
+  roles:
+    - vault_secrets
+
+- name: Optimize node storage behavior
+  hosts: k3s_cluster
+  roles:
+    - storage_optimize

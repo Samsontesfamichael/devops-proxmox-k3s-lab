@@ -1,0 +1,4 @@
+- name: Restart k3s
+  systemd:
+    name: "{{ 'k3s' if 'master' in group_names else 'k3s-agent' }}"
+    state: restarted
