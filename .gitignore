@@ -10,9 +10,8 @@ ansible/.vault_pass.txt
 ansible/group_vars/vault.yml
 ansible/.ansible_facts/
 
-# Kubernetes artifacts
+# Kubernetes core manifests (excluded from repo)
 kubernetes-core/*.yaml
-kubernetes-architecture/*.yaml
 .kube/
 
 # OS
