@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: corporate-custom-app
+  namespace: enterprise-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enterprise-custom
+  template:
+    metadata:
+      labels:
+        app: enterprise-custom
+    spec:
+      containers:
+        - name: web-app
+          image: node:18-alpine
+          command:
+            - "node"
+            - "-e"
+            - "const http = require('http'); http.createServer((q, r) => r.end('Custom App Active!')).listen(3000)"
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          ports:
+            - containerPort: 3000

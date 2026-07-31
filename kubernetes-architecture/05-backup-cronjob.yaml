@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-shared-pvc
+  namespace: enterprise-apps
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-nightly-backup
+  namespace: enterprise-apps
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup-engine
+              image: alpine:3.18
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  apk add --no-cache mysql-client postgresql-client
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  mysqldump -h mysql-db -u dev_user -p"$MYSQL_PASSWORD" training_db > /backups/mysql_backup_${TIMESTAMP}.sql
+                  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgres-db -U postgres_user company_db > /backups/postgres_backup_${TIMESTAMP}.sql
+              env:
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: enterprise-vault
+                      key: MYSQL_PASSWORD
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: enterprise-vault
+                      key: POSTGRES_PASSWORD
+              resources:
+                limits:
+                  memory: "128Mi"
+                  cpu: "200m"
+              volumeMounts:
+                - name: backup-dir
+                  mountPath: /backups
+          volumes:
+            - name: backup-dir
+              persistentVolumeClaim:
+                claimName: backup-shared-pvc

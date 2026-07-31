@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoscale-app
+  namespace: enterprise-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autoscale-web
+  template:
+    metadata:
+      labels:
+        app: autoscale-web
+    spec:
+      containers:
+        - name: php-traffic-burner
+          image: registry.k8s.io/hpa-example
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: autoscale-service
+  namespace: enterprise-apps
+spec:
+  selector:
+    app: autoscale-web
+  ports:
+    - port: 80

@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: enterprise-apps
+data:
+  BANNER_MESSAGE: "Welcome to the makandra DevOps training cluster!"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-demo-app
+  namespace: enterprise-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-test
+  template:
+    metadata:
+      labels:
+        app: config-test
+    spec:
+      containers:
+        - name: alpine-viewer
+          image: alpine:3.18
+          command:
+            - "/bin/sh"
+            - "-c"
+            - "echo $MESSAGE && sleep 3600"
+          resources:
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
+            requests:
+              memory: "16Mi"
+              cpu: "25m"
+          env:
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: BANNER_MESSAGE
