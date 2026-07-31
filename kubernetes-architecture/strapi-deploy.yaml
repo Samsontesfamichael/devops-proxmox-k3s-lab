@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strapi
+  namespace: enterprise-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: strapi
+  template:
+    metadata:
+      labels:
+        app: strapi
+    spec:
+      containers:
+      - name: strapi
+        image: strapi/strapi:latest
+        ports:
+        - containerPort: 1337
+        env:
+        - name: DATABASE_CLIENT
+          value: "mysql"
+        - name: DATABASE_HOST
+          value: "mysql-db.enterprise-apps.svc.cluster.local"
+        - name: DATABASE_PORT
+          value: "3306"
+        - name: DATABASE_NAME
+          value: "training_db"
+        - name: DATABASE_USERNAME
+          value: "dev_user"
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: enterprise-vault
+              key: MYSQL_PASSWORD
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: strapi-uploads
+          mountPath: /app/public/uploads
+      volumes:
+      - name: strapi-uploads
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: strapi-service
+  namespace: enterprise-apps
+spec:
+  selector:
+    app: strapi
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 1337
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: strapi-ingress
+  namespace: enterprise-apps
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: strapi.my-app.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: strapi-service
+            port:
+              number: 80
