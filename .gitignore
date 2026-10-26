@@ -32,3 +32,4 @@ structure.md
 
 # Lab CA certificate exported from the cluster (regenerated on rebuild)
 lab-root-ca.crt
+
