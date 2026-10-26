@@ -16,8 +16,26 @@ variable "unprivileged" {
 
 variable "template_file_id" {
   type        = string
-  description = "Template file ID"
-  default     = ""
+  description = "LXC template file ID, e.g. local:vztmpl/ubuntu-22.04.tar.xz"
+}
+
+variable "os_type" {
+  type        = string
+  description = "Container OS type"
+  default     = "ubuntu"
+}
+
+variable "ssh_public_keys" {
+  type        = list(string)
+  description = "SSH public keys authorized for root"
+  default     = []
+}
+
+variable "root_password" {
+  type        = string
+  description = "Root password (optional; SSH keys are preferred)"
+  default     = null
+  sensitive   = true
 }
 
 variable "hostname" {
@@ -63,6 +81,6 @@ variable "nesting" {
 
 variable "keyctl" {
   type        = bool
-  description = "Enable keyctl"
+  description = "Enable keyctl (unprivileged containers only; ignored otherwise)"
   default     = false
 }

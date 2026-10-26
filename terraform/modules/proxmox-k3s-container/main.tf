@@ -12,8 +12,9 @@ resource "proxmox_virtual_environment_container" "k3s_container" {
   vm_id        = var.vm_id
   unprivileged = var.unprivileged
 
-  clone {
-    vm_id = var.template_file_id
+  operating_system {
+    template_file_id = var.template_file_id
+    type             = var.os_type
   }
 
   cpu {
@@ -31,7 +32,8 @@ resource "proxmox_virtual_environment_container" "k3s_container" {
 
   features {
     nesting = var.nesting
-    keyctl  = var.keyctl
+    # Proxmox only lets root@pam set keyctl, and it only applies to unprivileged containers
+    keyctl = var.unprivileged ? var.keyctl : false
   }
 
   network_interface {
@@ -40,6 +42,11 @@ resource "proxmox_virtual_environment_container" "k3s_container" {
 
   initialization {
     hostname = var.hostname
+
+    user_account {
+      keys     = var.ssh_public_keys
+      password = var.root_password
+    }
 
     ip_config {
       ipv4 {

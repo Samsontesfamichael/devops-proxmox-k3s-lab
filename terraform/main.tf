@@ -9,7 +9,7 @@ terraform {
 
 variable "proxmox_api_token" { type = string }
 variable "proxmox_endpoint" { type = string }
-variable "gateway"          { type = string }
+variable "gateway" { type = string }
 variable "target_node" {
   type    = string
   default = "pve"
@@ -17,8 +17,8 @@ variable "target_node" {
 
 variable "ubuntu_template_url" {
   type    = string
-   default = "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz"
- }
+  default = "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz"
+}
 
 variable "network_prefix" {
   type    = string
@@ -38,6 +38,16 @@ variable "container_datastore" {
 variable "image_datastore" {
   type    = string
   default = "local"
+}
+
+variable "ssh_public_key_file" {
+  type        = string
+  description = "Public key installed as root's authorized key in each container"
+  default     = "~/.ssh/id_ed25519_proxmox.pub"
+}
+
+locals {
+  ssh_public_keys = [trimspace(file(pathexpand(var.ssh_public_key_file)))]
 }
 
 variable "master_vm_id" {
@@ -78,7 +88,8 @@ module "k3s_master" {
   disk_gb          = 20
   unprivileged     = false
   nesting          = true
-  keyctl           = true
+  keyctl           = false # root@pam only; not needed for privileged containers
+  ssh_public_keys  = local.ssh_public_keys
 }
 
 module "k3s_workers" {
@@ -97,7 +108,8 @@ module "k3s_workers" {
   disk_gb          = 20
   unprivileged     = false
   nesting          = true
-  keyctl           = true
+  keyctl           = false # root@pam only; not needed for privileged containers
+  ssh_public_keys  = local.ssh_public_keys
 }
 
 output "master_ip" {

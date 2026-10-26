@@ -8,11 +8,11 @@ terraform {
 }
 
 resource "proxmox_virtual_environment_download_file" "ubuntu_template" {
-  node_name             = var.node_name
-  content_type          = var.content_type
-  datastore_id          = var.datastore_id
-  url                   = var.url
-  verify                = false
-  overwrite_unmanaged   = true
-  overwrite             = false
+  node_name           = var.node_name
+  content_type        = var.content_type
+  datastore_id        = var.datastore_id
+  url                 = var.url
+  verify              = false
+  overwrite_unmanaged = true
+  overwrite           = false
 }
