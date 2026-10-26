@@ -123,6 +123,22 @@ spec:
                       claimName: postgres-pvc
 
 ---
+# File Browser keeps its users and settings in a database file; without a
+# volume it was lost on every restart and reset to the default admin/admin
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: filebrowser-db-pvc
+    namespace: enterprise-apps
+spec:
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: local-path
+    resources:
+        requests:
+            storage: 1Gi
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -130,6 +146,9 @@ metadata:
     namespace: enterprise-apps
 spec:
     replicas: 1
+    # The database file can only be opened by one process at a time
+    strategy:
+        type: Recreate
     selector:
         matchLabels:
             app: filebrowser
@@ -138,9 +157,37 @@ spec:
             labels:
                 app: filebrowser
         spec:
+            # File Browser ignores password environment variables, so set the
+            # admin password from the vault through its CLI before it starts
+            initContainers:
+                - name: set-admin-password
+                  image: filebrowser/filebrowser:v2-alpine
+                  command:
+                      - sh
+                      - -c
+                      - |
+                          set -e
+                          DB=/data/filebrowser.db
+                          if [ ! -f "$DB" ]; then
+                            /filebrowser -d "$DB" config init --address 0.0.0.0 --port 80 --root /srv --log stdout
+                            /filebrowser -d "$DB" users add admin "$FILEBROWSER_PASSWORD" --perm.admin
+                          else
+                            /filebrowser -d "$DB" users update admin --password "$FILEBROWSER_PASSWORD"
+                          fi
+                  env:
+                      - name: FILEBROWSER_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: enterprise-vault
+                                key: FILEBROWSER_PASSWORD
+                  volumeMounts:
+                      - name: filebrowser-db
+                        mountPath: /data
             containers:
                 - name: filebrowser
                   image: filebrowser/filebrowser:v2-alpine
+                  args:
+                      - --database=/data/filebrowser.db
                   resources:
                       limits:
                           memory: "128Mi"
@@ -153,10 +200,15 @@ spec:
                   volumeMounts:
                       - name: shared-backups
                         mountPath: /srv/cluster-backups
+                      - name: filebrowser-db
+                        mountPath: /data
             volumes:
                 - name: shared-backups
                   persistentVolumeClaim:
                       claimName: backup-shared-pvc
+                - name: filebrowser-db
+                  persistentVolumeClaim:
+                      claimName: filebrowser-db-pvc
 
 ---
 apiVersion: v1
