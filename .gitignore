@@ -33,3 +33,6 @@ structure.md
 # Lab CA certificate exported from the cluster (regenerated on rebuild)
 lab-root-ca.crt
 
+
+# Deprecated secrets file (secrets now live in ansible/group_vars/vault.yml)
+kubernetes-architecture/.env
