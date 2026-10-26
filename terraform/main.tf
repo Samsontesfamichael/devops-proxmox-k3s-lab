@@ -84,7 +84,7 @@ module "k3s_master" {
   datastore_id     = var.container_datastore
   template_file_id = module.ubuntu_template.file_id
   cpu_cores        = 2
-  memory_mb        = 1536
+  memory_mb        = 3072
   disk_gb          = 20
   unprivileged     = false
   nesting          = true

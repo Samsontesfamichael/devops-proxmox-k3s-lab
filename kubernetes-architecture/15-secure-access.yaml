@@ -1,0 +1,150 @@
+# LAN-only, HTTPS-only access to the lab's web apps through Traefik.
+# Nothing here is reachable from the internet unless the router forwards ports.
+#
+# Prerequisites (not in this file, so no password lands in git):
+#   kubectl create secret generic prometheus-basic-auth -n monitoring \
+#     --type=kubernetes.io/basic-auth \
+#     --from-literal=username=admin --from-literal=password=<choose one>
+
+# --- Private CA: trust lab-root-ca once on your PC and every lab cert is valid ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: lab-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: K3s Lab Root CA
+  secretName: lab-root-ca
+  duration: 87600h # 10 years
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-cluster-issuer
+    kind: ClusterIssuer
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: lab-ca-issuer
+spec:
+  ca:
+    secretName: lab-root-ca
+
+# --- Traefik: keep the real client IP, redirect HTTP to HTTPS, LAN filter ---
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    # ServiceLB rewrites the client's source address (even with
+    # externalTrafficPolicy: Local), so the LAN allow-list below would see
+    # every request as internal. Bind Traefik straight to ports 80/443 on
+    # k3s-master instead so it sees the real client IP.
+    service:
+      spec:
+        type: ClusterIP
+    nodeSelector:
+      kubernetes.io/hostname: k3s-master
+    # A host port can't be held by two pods at once, so replace the pod
+    # instead of starting the new one first
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+        maxSurge: 0
+    ports:
+      web:
+        hostPort: 80
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+      websecure:
+        hostPort: 443
+        http:
+          middlewares:
+            - kube-system-lan-only@kubernetescrd
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: lan-only
+  namespace: kube-system
+spec:
+  ipAllowList:
+    sourceRange:
+      - 192.168.1.0/24
+
+# --- Grafana (has its own login) ---
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: lab-ca-issuer
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - grafana.my-app.local
+      secretName: grafana-tls
+  rules:
+    - host: grafana.my-app.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+
+# --- Prometheus (no login of its own, so add basic auth) ---
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: prometheus-auth
+  namespace: monitoring
+spec:
+  basicAuth:
+    secret: prometheus-basic-auth
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: lab-ca-issuer
+    traefik.ingress.kubernetes.io/router.middlewares: monitoring-prometheus-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - prometheus.my-app.local
+      secretName: prometheus-tls
+  rules:
+    - host: prometheus.my-app.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090

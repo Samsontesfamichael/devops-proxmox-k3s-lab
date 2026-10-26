@@ -29,3 +29,6 @@ __pycache__
 # Documentation (generated/internal)
 error.md
 structure.md
+
+# Lab CA certificate exported from the cluster (regenerated on rebuild)
+lab-root-ca.crt
