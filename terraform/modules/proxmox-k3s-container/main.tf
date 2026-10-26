@@ -47,6 +47,12 @@ resource "proxmox_virtual_environment_container" "k3s_container" {
   initialization {
     hostname = var.hostname
 
+    # Without this the container copies the host's resolv.conf, whose
+    # 127.0.0.1 entry has nothing listening inside the container
+    dns {
+      servers = var.dns_servers
+    }
+
     user_account {
       keys     = var.ssh_public_keys
       password = var.root_password

@@ -84,3 +84,9 @@ variable "keyctl" {
   description = "Enable keyctl (unprivileged containers only)"
   default     = false
 }
+
+variable "dns_servers" {
+  type        = list(string)
+  description = "DNS servers for the container"
+  default     = ["8.8.8.8", "8.8.4.4"]
+}

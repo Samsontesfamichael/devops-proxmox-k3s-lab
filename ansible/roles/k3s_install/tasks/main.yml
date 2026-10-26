@@ -21,6 +21,14 @@
   environment:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
+# /dev is a fresh tmpfs on every LXC boot, so recreate the link at each boot
+- name: Recreate /dev/kmsg at boot for the kubelet in LXC
+  copy:
+    dest: /etc/tmpfiles.d/kmsg.conf
+    content: "L /dev/kmsg - - - - /dev/console
+"
+    mode: '0644'
+
 - name: Ensure /dev/kmsg exists for LXC nested containers
   file:
     src: /dev/console

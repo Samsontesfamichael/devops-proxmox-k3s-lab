@@ -90,6 +90,7 @@ module "k3s_master" {
   nesting          = true
   keyctl           = false # root@pam only; not needed for privileged containers
   ssh_public_keys  = local.ssh_public_keys
+  dns_servers      = [var.gateway, "8.8.8.8"]
 }
 
 module "k3s_workers" {
@@ -110,6 +111,7 @@ module "k3s_workers" {
   nesting          = true
   keyctl           = false # root@pam only; not needed for privileged containers
   ssh_public_keys  = local.ssh_public_keys
+  dns_servers      = [var.gateway, "8.8.8.8"]
 }
 
 output "master_ip" {
