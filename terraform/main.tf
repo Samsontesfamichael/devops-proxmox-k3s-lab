@@ -43,7 +43,7 @@ variable "image_datastore" {
 variable "ssh_public_key_file" {
   type        = string
   description = "Public key installed as root's authorized key in each container"
-  default     = "~/.ssh/id_ed25519_proxmox.pub"
+  default     = "~/.ssh/id_ed25519_k3s.pub"
 }
 
 locals {

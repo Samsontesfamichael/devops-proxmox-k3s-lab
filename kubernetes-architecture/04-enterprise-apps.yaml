@@ -1,224 +1,194 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mysql-pvc
-  namespace: enterprise-apps
+    name: mysql-pvc
+    namespace: enterprise-apps
 spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 10Gi
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: local-path
+    resources:
+        requests:
+            storage: 10Gi
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-db
-  namespace: enterprise-apps
+    name: mysql-db
+    namespace: enterprise-apps
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: mysql
-  template:
-    metadata:
-      labels:
-        app: mysql
-    spec:
-      containers:
-        - name: mysql
-          image: mysql:8.0
-          resources:
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-            requests:
-              memory: "256Mi"
-              cpu: "200m"
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: enterprise-vault
-                  key: MYSQL_ROOT_PASSWORD
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: enterprise-vault
-                  key: MYSQL_PASSWORD
-            - name: MYSQL_DATABASE
-              value: "training_db"
-            - name: MYSQL_USER
-              value: "dev_user"
-          volumeMounts:
-            - name: mysql-storage
-              mountPath: /var/lib/mysql
-      volumes:
-        - name: mysql-storage
-          persistentVolumeClaim:
-            claimName: mysql-pvc
+    replicas: 1
+    strategy:
+        type: Recreate
+    selector:
+        matchLabels:
+            app: mysql
+    template:
+        metadata:
+            labels:
+                app: mysql
+        spec:
+            containers:
+                - name: mysql
+                    image: mysql:8.0
+                    resources:
+                        limits:
+                            memory: "512Mi"
+                            cpu: "500m"
+                        requests:
+                            memory: "256Mi"
+                            cpu: "200m"
+                    env:
+                        - name: MYSQL_ROOT_PASSWORD
+                            valueFrom:
+                                secretKeyRef:
+                                    name: enterprise-vault
+                                    key: MYSQL_ROOT_PASSWORD
+                        - name: MYSQL_PASSWORD
+                            valueFrom:
+                                secretKeyRef:
+                                    name: enterprise-vault
+                                    key: MYSQL_PASSWORD
+                        - name: MYSQL_DATABASE
+                            value: "training_db"
+                        - name: MYSQL_USER
+                            value: "dev_user"
+                    volumeMounts:
+                        - name: mysql-storage
+                            mountPath: /var/lib/mysql
+            volumes:
+                - name: mysql-storage
+                    persistentVolumeClaim:
+                        claimName: mysql-pvc
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc
-  namespace: enterprise-apps
+    name: postgres-pvc
+    namespace: enterprise-apps
 spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 10Gi
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: local-path
+    resources:
+        requests:
+            storage: 10Gi
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-db
-  namespace: enterprise-apps
+    name: postgres-db
+    namespace: enterprise-apps
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:15-alpine
-          resources:
-            limits:
-              memory: "256Mi"
-              cpu: "300m"
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-          env:
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: enterprise-vault
-                  key: POSTGRES_PASSWORD
-            - name: POSTGRES_USER
-              value: "postgres_user"
-            - name: POSTGRES_DB
-              value: "company_db"
-          volumeMounts:
-            - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-storage
-          persistentVolumeClaim:
-            claimName: postgres-pvc
+    replicas: 1
+    strategy:
+        type: Recreate
+    selector:
+        matchLabels:
+            app: postgres
+    template:
+        metadata:
+            labels:
+                app: postgres
+        spec:
+            containers:
+                - name: postgres
+                    image: postgres:15-alpine
+                    resources:
+                        limits:
+                            memory: "256Mi"
+                            cpu: "300m"
+                        requests:
+                            memory: "128Mi"
+                            cpu: "100m"
+                    env:
+                        - name: POSTGRES_PASSWORD
+                            valueFrom:
+                                secretKeyRef:
+                                    name: enterprise-vault
+                                    key: POSTGRES_PASSWORD
+                        - name: POSTGRES_USER
+                            value: "postgres_user"
+                        - name: POSTGRES_DB
+                            value: "company_db"
+                    volumeMounts:
+                        - name: postgres-storage
+                            mountPath: /var/lib/postgresql/data
+            volumes:
+                - name: postgres-storage
+                    persistentVolumeClaim:
+                        claimName: postgres-pvc
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: filebrowser
-  namespace: enterprise-apps
+    name: filebrowser
+    namespace: enterprise-apps
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: filebrowser
-  template:
-    metadata:
-      labels:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: filebrowser
+    template:
+        metadata:
+            labels:
+                app: filebrowser
+        spec:
+            containers:
+                - name: filebrowser
+                    image: filebrowser/filebrowser:v2-alpine
+                    resources:
+                        limits:
+                            memory: "128Mi"
+                            cpu: "200m"
+                        requests:
+                            memory: "64Mi"
+                            cpu: "50m"
+                    ports:
+                        - containerPort: 80
+                    volumeMounts:
+                        - name: shared-backups
+                            mountPath: /srv/cluster-backups
+            volumes:
+                - name: shared-backups
+                    persistentVolumeClaim:
+                        claimName: backup-shared-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: filebrowser-service
+    namespace: enterprise-apps
+spec:
+    selector:
         app: filebrowser
-    spec:
-      containers:
-        - name: filebrowser
-          image: filebrowser/filebrowser:v2-alpine
-          resources:
-            limits:
-              memory: "128Mi"
-              cpu: "200m"
-            requests:
-              memory: "64Mi"
-              cpu: "50m"
-          ports:
-            - containerPort: 80
-          volumeMounts:
-            - name: shared-backups
-              mountPath: /srv/cluster-backups
-      volumes:
-        - name: shared-backups
-          persistentVolumeClaim:
-            claimName: backup-shared-pvc
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql-db
-  namespace: enterprise-apps
-spec:
-  selector:
-    app: mysql
-  ports:
-    - protocol: TCP
-      port: 3306
-      targetPort: 3306
-  clusterIP: None
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres-db
-  namespace: enterprise-apps
-spec:
-  selector:
-    app: postgres
-  ports:
-    - protocol: TCP
-      port: 5432
-      targetPort: 5432
-  clusterIP: None
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: filebrowser-service
-  namespace: enterprise-apps
-spec:
-  selector:
-    app: filebrowser
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
+    ports:
+        - protocol: TCP
+            port: 80
+            targetPort: 80
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: filebrowser-ingress
-  namespace: enterprise-apps
-  annotations:
-    kubernetes.io/ingress.class: traefik
+    name: filebrowser-ingress
+    namespace: enterprise-apps
+    annotations:
+        kubernetes.io/ingress.class: traefik
 spec:
-  rules:
-    - host: files.my-app.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: filebrowser-service
-                port:
-                  number: 80
+    rules:
+        - host: files.my-app.local
+            http:
+                paths:
+                    - path: /
+                        pathType: Prefix
+                        backend:
+                            service:
+                                name: filebrowser-service
+                                port:
+                                    number: 80

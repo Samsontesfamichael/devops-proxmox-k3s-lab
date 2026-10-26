@@ -75,12 +75,12 @@ variable "disk_gb" {
 
 variable "nesting" {
   type        = bool
-  description = "Enable nesting"
+  description = "Enable nesting (unprivileged containers only)"
   default     = false
 }
 
 variable "keyctl" {
   type        = bool
-  description = "Enable keyctl (unprivileged containers only; ignored otherwise)"
+  description = "Enable keyctl (unprivileged containers only)"
   default     = false
 }

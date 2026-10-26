@@ -30,10 +30,14 @@ resource "proxmox_virtual_environment_container" "k3s_container" {
     size         = var.disk_gb
   }
 
-  features {
-    nesting = var.nesting
-    # Proxmox only lets root@pam set keyctl, and it only applies to unprivileged containers
-    keyctl = var.unprivileged ? var.keyctl : false
+  # Proxmox only lets root@pam set feature flags on privileged containers, so an
+  # API token can't; set them on the host as root after creation instead
+  dynamic "features" {
+    for_each = var.unprivileged ? [1] : []
+    content {
+      nesting = var.nesting
+      keyctl  = var.keyctl
+    }
   }
 
   network_interface {
@@ -54,5 +58,9 @@ resource "proxmox_virtual_environment_container" "k3s_container" {
         gateway = var.gateway
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [features]
   }
 }

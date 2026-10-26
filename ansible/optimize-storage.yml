@@ -1,22 +1,22 @@
 - name: Optimize Node Storage Systems against 500GB HDD Pressure
-  hosts: k3s_cluster
-  tasks:
-    - name: Create local config asset room
-      file:
-        path: /etc/rancher/k3s
-        state: directory
-        mode: '0755'
+    hosts: k3s_cluster
+    tasks:
+        - name: Create local config asset room
+            file:
+                path: /etc/rancher/k3s
+                state: directory
+                mode: '0755'
 
-    - name: Inject aggressive garbage collection thresholds
-      copy:
-        dest: /etc/rancher/k3s/config.yaml
-        content: |
-          kubelet-arg:
-            - "image-gc-high-threshold=65" # Clean at 65% disk used
-            - "image-gc-low-threshold=50"  # Stop cleaning at 50%
-        mode: '0644'
+        - name: Inject aggressive garbage collection thresholds
+            copy:
+                dest: /etc/rancher/k3s/config.yaml
+                content: |
+                    kubelet-arg:
+                        - "image-gc-high-threshold=65" # Clean at 65% disk used
+                        - "image-gc-low-threshold=50"  # Stop cleaning at 50%
+                mode: '0644'
 
-    - name: Bounce node process lines to snap configurations live
-      systemd:
-        name: "{{ 'k3s' if 'master' in group_names else 'k3s-agent' }}"
-        state: restarted
+        - name: Bounce node process lines to snap configurations live
+            systemd:
+                name: "{{ 'k3s' if 'master' in group_names else 'k3s-agent' }}"
+                state: restarted
