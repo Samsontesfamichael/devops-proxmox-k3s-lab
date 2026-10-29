@@ -25,8 +25,7 @@
 - name: Recreate /dev/kmsg at boot for the kubelet in LXC
   copy:
     dest: /etc/tmpfiles.d/kmsg.conf
-    content: "L /dev/kmsg - - - - /dev/console
-"
+    content: "L /dev/kmsg - - - - /dev/console"
     mode: '0644'
 
 - name: Ensure /dev/kmsg exists for LXC nested containers

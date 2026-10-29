@@ -1,19 +1,14 @@
 # kubectl Practice Guide (for this lab)
 
-A beginner's list of commands to explore **your own K3s cluster**. Every name
-below (namespaces, apps, services) is real and exists in this lab, so you can
-copy-paste and run them.
+A beginner's list of commands to explore **your own K3s cluster**. Every name below (namespaces, apps, services) is real and exists in this lab, so you can copy-paste and run them.
 
-> **Tip:** Read-only commands (`get`, `describe`, `logs`, `top`) are always
-> safe. Commands marked ⚠️ change something. They are safe to practise here,
-> but read them before running.
+> **Tip:** Read-only commands (`get`, `describe`, `logs`, `top`) are always safe. Commands marked ⚠️ change something. They are safe to practise here, but read them before running.
 
 ---
 
 ## 0. One-time setup: connect kubectl to the cluster
 
-kubectl needs a **kubeconfig** file to know which cluster to talk to. Yours is
-already on your PC.
+kubectl needs a **kubeconfig** file to know which cluster to talk to. Yours is already on your PC.
 
 Pick the line for **where you are typing**:
 
@@ -29,8 +24,7 @@ $env:KUBECONFIG = "$env:USERPROFILE\.kube\config-proxmox-k3s"
 export KUBECONFIG=~/.kube/config-proxmox-k3s
 ```
 
-> **WSL says `Command 'kubectl' not found`?** WSL is its own Linux system and
-> needs its own kubectl. Don't use `snap`; install the official binary once:
+> **WSL says `Command 'kubectl' not found`?** WSL is its own Linux system and needs its own kubectl. Don't use `snap`; install the official binary once:
 >
 > ```bash
 > cd ~ && curl -LO "https://dl.k8s.io/release/v1.36.5/bin/linux/amd64/kubectl"
@@ -39,24 +33,19 @@ export KUBECONFIG=~/.kube/config-proxmox-k3s
 >
 > Or just use PowerShell, where kubectl already works.
 
-**On k3s-master itself** (logged in with `ssh root@192.168.1.201`): nothing to
-set. K3s's kubectl reads `/etc/rancher/k3s/k3s.yaml` by itself. If you set
-`KUBECONFIG` to the PC path above by mistake, you'll get
+**On k3s-master itself** (logged in with `ssh root@192.168.1.201`): nothing to set. K3s's kubectl reads `/etc/rancher/k3s/k3s.yaml` by itself. If you set `KUBECONFIG` to the PC path above by mistake, you'll get
 `connection to the server localhost:8080 was refused`. Fix it with:
 
 ```bash
 unset KUBECONFIG
 ```
 
-Run kubectl on the master, not the workers. The workers have a `kubectl`
-command, but no kubeconfig, so it can't reach the cluster from there.
+Run kubectl on the master, not the workers. The workers have a `kubectl` command, but no kubeconfig, so it can't reach the cluster from there.
 
-This lasts only for the current terminal window. Run it again each time you
-open a new one.
+This lasts only for the current terminal window. Run it again each time you open a new one.
 
 > **Git Bash note:** Git Bash rewrites paths like `/usr/share/...` inside
-> `kubectl exec` commands into Windows paths. Use PowerShell or WSL for
-> section 5, or put `MSYS_NO_PATHCONV=1 ` in front of the command.
+> `kubectl exec` commands into Windows paths. Use PowerShell or WSL for section 5, or put `MSYS_NO_PATHCONV=1 ` in front of the command.
 
 Check it works:
 
@@ -189,8 +178,7 @@ kubectl exec -it deploy/sample-web-app -n enterprise-apps -- sh
 
 ### Talk to the databases
 
-The passwords are already inside the containers as environment variables, so
-you don't need to type them.
+The passwords are already inside the containers as environment variables, so you don't need to type them.
 
 ```bash
 # MySQL: list databases
@@ -212,8 +200,7 @@ kubectl exec -it deploy/postgres-db -n enterprise-apps -- psql -U postgres_user 
 
 ### Option A: port-forward (works for anything, no setup)
 
-This connects a port on your PC to a Service in the cluster. Leave the window
-open while you use it, and press Ctrl+C to stop.
+This connects a port on your PC to a Service in the cluster. Leave the window open while you use it, and press Ctrl+C to stop.
 
 ```bash
 kubectl port-forward svc/grafana 3000:3000 -n monitoring              # http://localhost:3000
@@ -222,30 +209,28 @@ kubectl port-forward svc/filebrowser-service 8080:80 -n enterprise-apps   # http
 kubectl port-forward svc/web-entrypoint 8081:80 -n enterprise-apps        # http://localhost:8081
 ```
 
-Grafana logs in as user `admin`. Its password is in the `grafana-admin` secret,
-under the key `password` (see section 7).
+Grafana logs in as user `admin`. Its password is in the `grafana-admin` secret,under the key `password` (see section 7).
 
 ### Option B: host names through Traefik (Ingress), HTTPS and LAN-only
 
 All web access goes through Traefik on `192.168.1.201`. It only accepts
-requests from your home network (`192.168.1.0/24`), redirects HTTP to HTTPS,
-and nothing is open to the internet. The setup is in
-`kubernetes-architecture/15-secure-access.yaml`.
+requests from your home network (`192.168.1.0/24`), redirects HTTP to HTTPS, and nothing is open to the internet.
 
-1. Add this line to `C:\Windows\System32\drivers\etc\hosts` (open Notepad as
-   Administrator):
+The setup is in `kubernetes-architecture/15-secure-access.yaml`.
+
+1. Add this line to `C:\Windows\System32\drivers\etc\hosts` (open Notepad as Administrator):
+
    ```
    192.168.1.201  my-app.local  files.my-app.local  grafana.my-app.local  prometheus.my-app.local
    ```
 2. Trust the lab's certificate authority once, so the browser shows no warning.
    In PowerShell, from the project folder:
+
    ```powershell
    Import-Certificate -FilePath .\lab-root-ca.crt -CertStoreLocation Cert:\CurrentUser\Root
    ```
 
-   (Windows asks you to confirm. If the file is missing, export it again with
-   `kubectl get secret lab-root-ca -n cert-manager -o jsonpath='{.data.ca\.crt}'`
-   and base64-decode it.)
+   (Windows asks you to confirm. If the file is missing, export it again with `kubectl get secret lab-root-ca -n cert-manager -o jsonpath='{.data.ca\.crt}'` and base64-decode it.)
 3. Open them:
 
 | Address                         | Login                                                                                                       |
@@ -342,8 +327,7 @@ kubectl rollout status deployment/config-demo-app -n enterprise-apps
 
 ### Exercise 5: Autoscaling (HPA) ⚠️
 
-The `web-autoscaler` HPA adds copies of `autoscale-app` (up to 4) when CPU goes
-above 50%.
+The `web-autoscaler` HPA adds copies of `autoscale-app` (up to 4) when CPU goes above 50%.
 
 ```bash
 kubectl get hpa -n enterprise-apps
@@ -420,8 +404,7 @@ kubectl explain deployment.spec.replicas                    # built-in docs for 
 
 ## 11. Apply, change and delete YAML files ⚠️
 
-The app definitions are in this repo under `kubernetes-architecture/` and
-`kubernetes-core/`.
+The app definitions are in this repo under `kubernetes-architecture/` an `kubernetes-core/`.
 
 ```bash
 kubectl diff -f kubernetes-architecture/06-health-checks.yaml     # preview a change first
